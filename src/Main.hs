@@ -184,43 +184,37 @@ instance forall s f a rs. (KnownSymbol s, Show (f (Col' s a)), ShowRec f rs)
 showRec :: ShowRec f rs => Rec f rs -> String
 showRec r = "{" ++ intercalate ", " (showRec' r) ++ "}"
 
--- TODO current error
--- <interactive>:1:6-11: error:
---     * Could not deduce (RElem
---                           UserId
---                           '[UserId, "age" :-> Int, "gender" :-> String,
---                             "occupation" :-> String, "zip code" :-> String]
---                           'Z)
---         arising from a use of `userId'
---       from the context: Functor f
---         bound by a type expected by the context:
---                    Functor f =>
---                    (Int -> f Int)
---                    -> Record
---                         '[UserId, "age" :-> Int, "gender" :-> String,
---                           "occupation" :-> String, "zip code" :-> String]
---                    -> f (Record
---                            '[UserId, "age" :-> Int, "gender" :-> String,
---                              "occupation" :-> String, "zip code" :-> String])
---         at <interactive>:1:1-16
---     * In the first argument of `rget', namely `userId'
---       In the expression: rget userId user
+recordToList
+  :: Rec (Const a) rs
+  -> [a]
+recordToList RNil = []
+recordToList (x :& xs) = getConst x : recordToList xs
 
--- getUsersId :: (Functor f, RElem UserId rs (RIndex UserId rs)) => f (Record rs)
--- getUsersId = rget userId user
-
--- C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:150:78-79: error: …
---     * non-bidirectional pattern synonym `:&' used in an expression
---     * In the expression:
---         pure 0 :& pure 25 :& pure "Male" :& pure "Programmer"
---         :& pure "90210"
---         :& Nil
---       In an equation for `user':
---           user
---             = pure 0 :& pure 25 :& pure "Male" :& pure "Programmer"
---               :& pure "90210"
---               :& Nil
+-- current error
+-- C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:191:15-21: error: …
+--     * Couldn't match type `u1' with `*'
+--       `u1' is a rigid type variable bound by
+--         the type signature for:
+--           recordToList :: forall u1 a (rs :: [u1]). Rec (Const a) rs -> [a]
+--         at C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:188:6
+--       Expected type: Rec (Const a) (s0 :-> b0 : rs0)
+--         Actual type: Rec (Const a) rs
+--     * In the pattern: x :& xs
+--       In an equation for `recordToList':
+--           recordToList (x :& xs) = getConst x : recordToList xs
+--     * Relevant bindings include
+--         recordToList :: Rec (Const a) rs -> [a]
+--           (bound at C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:190:1)
 -- Compilation failed.
+
+instance RecAll f rs Show => Show (Rec f rs) where
+  show xs =
+    (\str -> "{" <> str <> "}")
+      . intercalate ", "
+      . recordToList
+      . rmap (\(Compose (Dict x)) -> Const $ Prelude.show x)
+      $ reifyConstraint (Proxy :: Proxy Show) xs
+
 
 rlens' :: (i ~ RIndex r rs, RElem r rs i, Functor f, Functor g)
        => sing r
