@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,6 +13,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 
 module Main where
@@ -23,7 +25,7 @@ import Data.List (intercalate)
 import Data.Monoid
 import Control.Applicative
 import Data.Functor.Identity
-import GHC.TypeLits (Symbol)
+import GHC.TypeLits (Symbol, KnownSymbol, symbolVal)
 
 
 -- NOTE All of this code is taken from the Vinyl record library and put into this single filie for simplicity of asking questions and giving a reproducible environment to others that can answer my questions.
@@ -144,20 +146,43 @@ frameUncons (x ::& xs) = (fmap getCol x, xs)
 pattern x :& xs <-  (frameUncons -> (x, xs)) where
   x :& xs = frameCons x xs
 
--- pattern HeadC x <- x:xs where
---   HeadC x = [x]
-
 pattern Nil = RNil
 
 type UserId = "user id" :-> Int
 
 type User = Record [UserId, "age" :-> Int, "gender" :-> String, "occupation" :-> String, "zip code" :-> String]
 
-simpleInt = Identity 1 &: Nil
-
 user :: User
 user = 0 &: 25 &: "Male" &: "Programmer" &: "90210" &: Nil
 
+-- TODO make the show instance for user work
+instance forall s a. (KnownSymbol s, Show a) => Show (s :-> a) where
+  show (Col x) = symbolVal (Proxy::Proxy s)++" :-> "++Prelude.show x
+
+-- | Used only for a show instance that parenthesizes the value.
+newtype Col' s a = Col' (s :-> a)
+
+-- | Helper for making a 'Col''
+col' :: a -> Col' s a
+col' = Col' . Col
+
+instance (KnownSymbol s, Show a) => Show (Col' s a) where
+show (Col' c) = "(" ++ Prelude.show c ++ ")"
+
+class Functor f => ShowRec f rs where
+  showRec' :: Rec f rs -> [String]
+
+instance Functor f => ShowRec f '[] where
+  showRec' _ = []
+
+instance forall s f a rs. (KnownSymbol s, Show (f (Col' s a)), ShowRec f rs)
+  => ShowRec f (s :-> a ': rs) where
+  showRec' (x :& xs) = Prelude.show (col' <$> x :: f (Col' s a)) : showRec' xs
+  showRec' _ = error "GHC coverage error"
+
+-- | Pretty printing of 'Rec' values.
+showRec :: ShowRec f rs => Rec f rs -> String
+showRec r = "{" ++ intercalate ", " (showRec' r) ++ "}"
 
 -- TODO current error
 -- <interactive>:1:6-11: error:
