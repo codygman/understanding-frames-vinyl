@@ -64,25 +64,6 @@ instance (RIndex r (s ': rs) ~ S i, RElem r rs i) => RElem r (s ': rs) (S i) whe
   rlensVinyl p f (x ::& xs) = fmap (x ::&) (rlensVinyl p f xs)
   rgetVinyl k = getConst . rlensVinyl k Const
 
-frameCons :: Functor f => f a -> Rec f rs -> Rec f (s :-> a ': rs)
-frameCons = (::&) . fmap Col
-
--- | A @cons@ function for building 'Record' values.
-(&:) :: a -> Record rs -> Record (s :-> a ': rs)
-x &: xs = frameCons (Identity x) xs
-infixr 5 &:
-
-frameUncons :: Functor f => Rec f (s :-> r ': rs) -> (f r, Rec f rs)
-frameUncons (x ::& xs) = (fmap getCol x, xs)
-
-pattern x :& xs <-  (frameUncons -> (x, xs)) where
-  x :& xs = frameCons x xs
-
-pattern Nil = RNil
-
--- | Used only for a show instance that parenthesizes the value.
-newtype Col' s a = Col' (s :-> a)
-
 rlens' :: (i ~ RIndex r rs, RElem r rs i, Functor f, Functor g)
        => sing r
        -> (g r -> f (g r))
@@ -95,6 +76,24 @@ rlens :: (Functor f, RElem (s :-> a) rs (RIndex (s :-> a) rs))
       => proxy (s :-> a) -> (a -> f a) -> Record rs -> f (Record rs)
 rlens k f = rlens' k (fmap Identity . runIdentity . fmap f')
   where f' (Col x) = fmap Col (f x)
+
+-- | A @cons@ function for building 'Record' values.
+(&:) :: a -> Record rs -> Record (s :-> a ': rs)
+x &: xs = frameCons (Identity x) xs
+infixr 5 &:
+
+pattern x :& xs <-  (frameUncons -> (x, xs)) where
+  x :& xs = frameCons x xs
+pattern Nil = RNil
+
+-- | Used only for a show instance that parenthesizes the value.
+newtype Col' s a = Col' (s :-> a)
+
+frameCons :: Functor f => f a -> Rec f rs -> Rec f (s :-> a ': rs)
+frameCons = (::&) . fmap Col
+
+frameUncons :: Functor f => Rec f (s :-> r ': rs) -> (f r, Rec f rs)
+frameUncons (x ::& xs) = (fmap getCol x, xs)
 
 userId ::
   forall f rs. (Functor f, RElem UserId rs (RIndex UserId rs)) =>
