@@ -122,7 +122,6 @@ rappend
 rappend RNil ys = ys
 rappend (x ::& xs) ys = x ::& (xs `rappend` ys)
 
-
 frameCons :: Functor f => f a -> Rec f rs -> Rec f (s :-> a ': rs)
 frameCons = (::&) . fmap Col
 
