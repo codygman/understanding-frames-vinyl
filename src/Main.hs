@@ -188,7 +188,7 @@ recordToList
   :: Rec (Const a) rs
   -> [a]
 recordToList RNil = []
-recordToList (x :& xs) = getConst x : recordToList xs
+recordToList (x ::& xs) = getConst x : recordToList xs
 
 -- current error
 -- C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:191:15-21: error: …
