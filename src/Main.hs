@@ -190,23 +190,6 @@ recordToList
 recordToList RNil = []
 recordToList (x ::& xs) = getConst x : recordToList xs
 
--- current error
--- C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:191:15-21: error: …
---     * Couldn't match type `u1' with `*'
---       `u1' is a rigid type variable bound by
---         the type signature for:
---           recordToList :: forall u1 a (rs :: [u1]). Rec (Const a) rs -> [a]
---         at C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:188:6
---       Expected type: Rec (Const a) (s0 :-> b0 : rs0)
---         Actual type: Rec (Const a) rs
---     * In the pattern: x :& xs
---       In an equation for `recordToList':
---           recordToList (x :& xs) = getConst x : recordToList xs
---     * Relevant bindings include
---         recordToList :: Rec (Const a) rs -> [a]
---           (bound at C:\Users\cody\Desktop\understanding-vinyl-minrepro\src\Main.hs:190:1)
--- Compilation failed.
-
 instance RecAll f rs Show => Show (Rec f rs) where
   show xs =
     (\str -> "{" <> str <> "}")
@@ -237,6 +220,34 @@ userId = rlens (Proxy :: Proxy UserId)
 rget :: (forall f. Functor f => (a -> f a) -> Record rs -> f (Record rs))
      -> Record rs -> a
 rget l = getConst . l Const
+
+
+
+-- TODO evidently we don't have enough machinery yet to deduce that there is indeed a UserId c olumn in the given record... WHY?
+-- λ> rget userId user
+
+-- <interactive>:629:6-11: error:
+--     * Could not deduce (RElem
+--                           UserId
+--                           '[UserId, "age" :-> Int, "gender" :-> String,
+--                             "occupation" :-> String, "zip code" :-> String]
+--                           'Z)
+--         arising from a use of `userId'
+--       from the context: Functor f
+--         bound by a type expected by the context:
+--                    Functor f =>
+--                    (Int -> f Int)
+--                    -> Record
+--                         '[UserId, "age" :-> Int, "gender" :-> String,
+--                           "occupation" :-> String, "zip code" :-> String]
+--                    -> f (Record
+--                            '[UserId, "age" :-> Int, "gender" :-> String,
+--                              "occupation" :-> String, "zip code" :-> String])
+--         at <interactive>:629:1-16
+--     * In the first argument of `rget', namely `userId'
+--       In the expression: rget userId user
+--       In an equation for `it': it = rget userId user
+
 
 
 -- Questions:
