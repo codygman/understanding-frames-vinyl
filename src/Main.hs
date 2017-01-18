@@ -114,7 +114,6 @@ class i ~ RIndex r rs => RElem (r :: k) (rs :: [k]) (i :: Nat) where
     -> Rec f rs
     -> Rec f rs
 
-
 -- necessary instance for rgetVinyl (hence rget) to work
 instance RElem r (r ': rs) Z where
   rlensVinyl _ f (x ::& xs) = fmap (::& xs) (f x)
@@ -220,7 +219,9 @@ rlens' = rlensVinyl
 -- | Create a lens for accessing a field of a 'Record'.
 rlens :: (Functor f, RElem (s :-> a) rs (RIndex (s :-> a) rs))
       => proxy (s :-> a) -> (a -> f a) -> Record rs -> f (Record rs)
-rlens k f = rlens' k (fmap Identity . runIdentity . fmap f')
+-- rlens k f = rlens' k (fmap Identity . runIdentity . fmap f')
+--   where f' (Col x) = fmap Col (f x)
+rlens k f = rlens' k (\x -> fmap Identity (runIdentity (fmap f' x)))-- pointed version
   where f' (Col x) = fmap Col (f x)
 
 userId ::
@@ -230,35 +231,8 @@ userId = rlens (Proxy :: Proxy UserId)
 
 rget :: (forall f. Functor f => (a -> f a) -> Record rs -> f (Record rs))
      -> Record rs -> a
-rget l = getConst . l Const
-
-
-
--- TODO evidently we don't have enough machinery yet to deduce that there is indeed a UserId c olumn in the given record... WHY?
--- λ> rget userId user
-
--- <interactive>:629:6-11: error:
---     * Could not deduce (RElem
---                           UserId
---                           '[UserId, "age" :-> Int, "gender" :-> String,
---                             "occupation" :-> String, "zip code" :-> String]
---                           'Z)
---         arising from a use of `userId'
---       from the context: Functor f
---         bound by a type expected by the context:
---                    Functor f =>
---                    (Int -> f Int)
---                    -> Record
---                         '[UserId, "age" :-> Int, "gender" :-> String,
---                           "occupation" :-> String, "zip code" :-> String]
---                    -> f (Record
---                            '[UserId, "age" :-> Int, "gender" :-> String,
---                              "occupation" :-> String, "zip code" :-> String])
---         at <interactive>:629:1-16
---     * In the first argument of `rget', namely `userId'
---       In the expression: rget userId user
---       In an equation for `it': it = rget userId user
-
+-- rget l = getConst . l Const
+rget l x = getConst (l Const x) -- pointed version
 
 
 -- Questions:
@@ -266,7 +240,7 @@ rget l = getConst . l Const
 
 -- What is the reason that reifyConstraint is necessary? Is it because constraints are stored in a type level list and then only made real or "reified" when this function is called?
 
--- 
+-- What is 'class i ~ RIndex r rs => RElem'? A multi-param type class? Looks like it, because I removed the pragma and that's where the error was.
 
 main :: IO ()
 main = do
