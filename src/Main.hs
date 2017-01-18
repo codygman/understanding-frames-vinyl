@@ -80,7 +80,6 @@ rapply
 rapply RNil RNil = RNil
 rapply (f ::& fs) (x ::& xs) = getLift f x ::& (fs `rapply` xs)
 
-
 type Record = Rec Identity
 
 -- | A column's type includes a textual name and the data type of each
@@ -114,6 +113,19 @@ class i ~ RIndex r rs => RElem (r :: k) (rs :: [k]) (i :: Nat) where
     :: f r
     -> Rec f rs
     -> Rec f rs
+
+
+-- necessary instance for rgetVinyl (hence rget) to work
+instance RElem r (r ': rs) Z where
+  rlensVinyl _ f (x ::& xs) = fmap (::& xs) (f x)
+  rgetVinyl k = getConst . rlensVinyl k Const
+  rputVinyl y = runIdentity . rlensVinyl Proxy (\_ -> Identity y)
+
+-- TODO see what breaks when this one isn't here to figure out what its for exactly
+instance (RIndex r (s ': rs) ~ S i, RElem r rs i) => RElem r (s ': rs) (S i) where
+  rlensVinyl p f (x ::& xs) = fmap (x ::&) (rlensVinyl p f xs)
+  rgetVinyl k = getConst . rlensVinyl k Const
+  rputVinyl y = runIdentity . rlensVinyl Proxy (\_ -> Identity y)
 
 rappend
   :: Rec f as
