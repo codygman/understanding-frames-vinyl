@@ -11,11 +11,7 @@
 
 module Main where
 
-import GHC.Exts
-import Data.Functor.Compose
 import Data.Typeable (Proxy(..))
-import Data.List (intercalate)
-import Data.Monoid
 import Control.Applicative
 import Data.Functor.Identity
 import GHC.TypeLits (Symbol, KnownSymbol, symbolVal)
